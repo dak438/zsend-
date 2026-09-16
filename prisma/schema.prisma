@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  googleId     String?    @unique
+  name         String?
+  image        String?
+  passwordHash String?    // Optional: enables guest/local testing without Google OAuth keys
+  createdAt    DateTime   @default(now())
+  timezone     String     @default("Asia/Kolkata")
+  character    Character?
+}
+
+model Character {
+  id             String            @id @default(cuid())
+  userId         String            @unique
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  overallStreak       Int               @default(0)
+  lastActiveDate      String?           // "YYYY-MM-DD" in user's local timezone
+  hasSeenWalkthrough  Boolean           @default(false)
+  stats               Stat[]
+  quests         Quest[]
+  completions    QuestCompletion[]
+}
+
+model Stat {
+  id             String     @id @default(cuid())
+  characterId    String
+  character      Character  @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  name           String     // User-defined name (e.g. "Strength", "Deep Work")
+  icon           String     // Fixed Lucide icon key (e.g. "Dumbbell", "Brain")
+  xp             Int        @default(0)
+  streak         Int        @default(0)
+  lastActiveDate String?    // Per-stat streak tracking "YYYY-MM-DD"
+  sortOrder      Int        @default(0)
+  active         Boolean    @default(true) // Soft-delete
+  createdAt      DateTime   @default(now())
+  quests         Quest[]
+
+  @@index([characterId])
+}
+
+model Quest {
+  id          String            @id @default(cuid())
+  characterId String
+  character   Character         @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  statId      String
+  stat        Stat              @relation(fields: [statId], references: [id], onDelete: Cascade)
+  title       String
+  xpValue     Int
+  recurring   Boolean           @default(true)
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  completions QuestCompletion[]
+
+  @@index([statId])
+  @@index([characterId])
+}
+
+model QuestCompletion {
+  id            String    @id @default(cuid())
+  questId       String
+  quest         Quest     @relation(fields: [questId], references: [id], onDelete: Cascade)
+  characterId   String
+  character     Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  completedAt   DateTime  @default(now())
+  completedDate String    // "YYYY-MM-DD" in user's local timezone
+
+  @@unique([questId, completedDate]) // Idempotency: prevents duplicate completion on same day
+  @@index([characterId])
+}
