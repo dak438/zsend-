@@ -8,9 +8,15 @@ import { Zap, ShieldCheck, ArrowRight } from 'lucide-react';
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     setLoading(true);
-    signIn('google', { callbackUrl: '/' });
+    try {
+      // Explicitly point to /onboarding (or /dashboard) after login
+      await signIn('google', { callbackUrl: '/onboarding' });
+    } catch (error) {
+      console.error('Sign-in failed:', error);
+      setLoading(false);
+    }
   };
 
   return (
