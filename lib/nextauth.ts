@@ -1,13 +1,8 @@
-
 import { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { prisma } from '@/lib/prisma';
 
-const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith('https://');
-const cookiePrefix = useSecureCookies ? '__Secure-' : '';
-
 export const authOptions: NextAuthOptions = {
-  debug: true,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -18,22 +13,16 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  useSecureCookies,
-  cookies: {
-    sessionToken: {
-      name: `${cookiePrefix}next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: useSecureCookies,
-      },
-    },
-  },
   callbacks: {
     async signIn({ account, profile }) {
       if (account?.provider === 'google') {
-        const googleProfile = profile as { email_verified?: boolean; email?: string; sub?: string; name?: string; picture?: string };
+        const googleProfile = profile as {
+          email_verified?: boolean;
+          email?: string;
+          sub?: string;
+          name?: string;
+          picture?: string;
+        };
 
         if (!googleProfile?.email_verified || !googleProfile.email || !googleProfile.sub) {
           return false;
@@ -82,8 +71,9 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, account, profile }) {
+      // 1. Initial sign in
       if (account && profile) {
-        const email = profile.email?.toLowerCase().trim();
+        const email = (profile.email || token.email)?.toLowerCase().trim();
         if (email) {
           const dbUser = await prisma.user.findUnique({
             where: { email },
@@ -92,13 +82,15 @@ export const authOptions: NextAuthOptions = {
           if (dbUser) {
             token.userId = dbUser.id;
             token.characterId = dbUser.character?.id;
+            token.email = dbUser.email;
           }
         }
       }
 
+      // 2. Subsequent requests
       if (!token.userId && token.email) {
         const dbUser = await prisma.user.findUnique({
-          where: { email: token.email.toLowerCase().trim() },
+          where: { email: (token.email as string).toLowerCase().trim() },
           include: { character: true },
         });
         if (dbUser) {

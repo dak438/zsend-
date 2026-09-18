@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -20,15 +21,15 @@ model User {
 }
 
 model Character {
-  id             String            @id @default(cuid())
-  userId         String            @unique
-  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  overallStreak       Int               @default(0)
-  lastActiveDate      String?           // "YYYY-MM-DD" in user's local timezone
-  hasSeenWalkthrough  Boolean           @default(false)
-  stats               Stat[]
-  quests         Quest[]
-  completions    QuestCompletion[]
+  id                 String            @id @default(cuid())
+  userId             String            @unique
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  overallStreak      Int               @default(0)
+  lastActiveDate     String?           // "YYYY-MM-DD" in user's local timezone
+  hasSeenWalkthrough Boolean           @default(false)
+  stats              Stat[]
+  quests             Quest[]
+  completions        QuestCompletion[]
 }
 
 model Stat {
@@ -76,8 +77,4 @@ model QuestCompletion {
 
   @@unique([questId, completedDate]) // Idempotency: prevents duplicate completion on same day
   @@index([characterId])
-}
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
