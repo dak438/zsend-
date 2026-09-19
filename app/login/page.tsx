@@ -11,9 +11,12 @@ function LoginForm() {
   const { status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
 
-  // Auto-redirect if already authenticated
+  // Ensure callbackUrl doesn't point back to /login itself
+  const rawCallback = searchParams.get('callbackUrl');
+  const callbackUrl = rawCallback && !rawCallback.startsWith('/login') ? rawCallback : '/onboarding';
+
+  // Auto-redirect ONLY when status transitions explicitly to 'authenticated'
   useEffect(() => {
     if (status === 'authenticated') {
       router.replace(callbackUrl);
@@ -138,11 +141,13 @@ export default function LoginPage() {
         transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
         className="relative z-10 w-full max-w-md"
       >
-        <Suspense fallback={
-          <div className="glass-card p-8 border border-white/10 shadow-2xl rounded-[2rem] text-center">
-            <div className="w-6 h-6 border-2 border-accent-indigo border-t-transparent rounded-full animate-spin mx-auto" />
-          </div>
-        }>
+        <Suspense
+          fallback={
+            <div className="glass-card p-8 border border-white/10 shadow-2xl rounded-[2rem] text-center">
+              <div className="w-6 h-6 border-2 border-accent-indigo border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          }
+        >
           <LoginForm />
         </Suspense>
       </motion.div>
