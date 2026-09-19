@@ -3,6 +3,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import { prisma } from '@/lib/prisma';
 
 export const authOptions: NextAuthOptions = {
+  debug: true, // Enables detailed Netlify function logs for auth steps
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -71,7 +72,6 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, account, profile }) {
-      // 1. Initial sign in
       if (account && profile) {
         const email = (profile.email || token.email)?.toLowerCase().trim();
         if (email) {
@@ -87,7 +87,6 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // 2. Subsequent requests
       if (!token.userId && token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: (token.email as string).toLowerCase().trim() },
@@ -114,5 +113,5 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login',
     error: '/login',
   },
-  secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
+  secret: process.env.NEXTAUTH_SECRET,
 };

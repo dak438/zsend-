@@ -2,7 +2,7 @@ import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 
 export default withAuth(
-  function middleware() {
+  function middleware(req) {
     return NextResponse.next();
   },
   {
@@ -15,6 +15,7 @@ export default withAuth(
   }
 );
 
+// Match strictly protected routes
 export const config = {
   matcher: [
     '/',
